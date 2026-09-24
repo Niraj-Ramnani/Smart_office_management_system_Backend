@@ -3,9 +3,16 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api.v1.auth import router as auth_router
 from app.core.auth import load_azure_openid_config
 from app.core.config import settings
+from app.routes.v1 import (
+    auth_router,
+    building_router,
+    employee_router,
+    floor_router,
+    team_router,
+    user_router,
+)
 
 
 @asynccontextmanager
@@ -33,6 +40,11 @@ app.add_middleware(
 )
 
 app.include_router(auth_router, prefix="/api/v1")
+app.include_router(building_router, prefix="/api/v1")
+app.include_router(floor_router, prefix="/api/v1")
+app.include_router(team_router, prefix="/api/v1")
+app.include_router(employee_router, prefix="/api/v1")
+app.include_router(user_router, prefix="/api/v1")
 
 
 @app.get("/")
