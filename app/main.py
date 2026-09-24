@@ -1,35 +1,50 @@
-import os
+from contextlib import asynccontextmanager
 
-from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-load_dotenv()
+from app.core.auth import load_azure_openid_config
+from app.core.config import settings
+from app.routes.v1 import (
+    auth_router,
+    building_router,
+    employee_router,
+    floor_router,
+    team_router,
+    user_router,
+)
 
-app = FastAPI(title="Smart Office Management System")
 
-# Configure CORS
-origins_env = os.getenv("CORS_ORIGINS", "")
-allowed_origins = [
-    origin.strip()
-    for origin in origins_env.split(",")
-    if origin.strip()
-]
-if not allowed_origins:
-    allowed_origins = [
-        "http://localhost:5173",
-        "http://localhost:5174",
-        "http://127.0.0.1:5173",
-        "http://127.0.0.1:5174",
-    ]
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    await load_azure_openid_config()
+    yield
+
+
+app = FastAPI(
+    title=settings.PROJECT_NAME,
+    lifespan=lifespan,
+    swagger_ui_oauth2_redirect_url="/oauth2-redirect",
+    swagger_ui_init_oauth={
+        "usePkceWithAuthorizationCodeGrant": True,
+        "clientId": settings.AZURE_CLIENT_ID,
+    },
+)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=allowed_origins,
+    allow_origins=settings.CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.include_router(auth_router, prefix="/api/v1")
+app.include_router(building_router, prefix="/api/v1")
+app.include_router(floor_router, prefix="/api/v1")
+app.include_router(team_router, prefix="/api/v1")
+app.include_router(employee_router, prefix="/api/v1")
+app.include_router(user_router, prefix="/api/v1")
 
 
 @app.get("/")
