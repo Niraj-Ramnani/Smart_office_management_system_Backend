@@ -4,6 +4,8 @@ from app.routes.v1.auth_routes import router as auth_router
 from app.routes.v1.building_routes import router as building_router
 from app.routes.v1.employee_routes import router as employee_router
 from app.routes.v1.floor_routes import router as floor_router
+from app.routes.v1.seat_request_routes import router as seat_request_router
+from app.routes.v1.seat_routes import router as seat_router
 from app.routes.v1.team_routes import router as team_router
 from app.routes.v1.user_routes import router as user_router
 
@@ -14,6 +16,8 @@ api_v1_router.include_router(floor_router)
 api_v1_router.include_router(team_router)
 api_v1_router.include_router(employee_router)
 api_v1_router.include_router(user_router)
+api_v1_router.include_router(seat_router)
+api_v1_router.include_router(seat_request_router)
 
 __all__ = [
     "api_v1_router",
@@ -23,4 +27,6 @@ __all__ = [
     "team_router",
     "employee_router",
     "user_router",
+    "seat_router",
+    "seat_request_router",
 ]

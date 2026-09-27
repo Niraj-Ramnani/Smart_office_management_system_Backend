@@ -76,10 +76,13 @@ class UserService:
                 db, employee_id, exclude_user_id=user_id
             )
             if conflict:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=f"Employee '{employee.first_name} {employee.last_name}' is already linked to user '{conflict.email}'",
-                )
+                if conflict.sso_user_id is None:
+                    UserRepository.update_employee_link(db, conflict, None)
+                else:
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail=f"Employee '{employee.first_name} {employee.last_name}' is already linked to user '{conflict.email}'",
+                    )
 
             user = UserRepository.update_employee_link(db, user, employee_id)
         else:

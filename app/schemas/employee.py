@@ -2,7 +2,7 @@ import re
 from datetime import datetime
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-from app.core.constants import EMPLOYEE_STATUS_ACTIVE
+from app.core.constants import EMPLOYEE_STATUS_ACTIVE, ROLE_EMPLOYEE
 
 EMAIL_REGEX = re.compile(r"^[\w\.-]+@[\w\.-]+\.\w+$")
 
@@ -30,7 +30,8 @@ class EmployeeBase(BaseModel):
 
 
 class EmployeeCreate(EmployeeBase):
-    pass
+    role_name: str | None = Field(default=ROLE_EMPLOYEE)
+    sso_user_id: str | None = None
 
 
 class EmployeeUpdate(BaseModel):
@@ -45,6 +46,7 @@ class EmployeeUpdate(BaseModel):
     employee_status: str | None = Field(None, max_length=30)
     manager_id: int | None = None
     team_id: int | None = None
+    role_name: str | None = None
 
     @field_validator("email")
     @classmethod
@@ -70,6 +72,8 @@ class EmployeeResponse(EmployeeBase):
     manager_name: str | None = None
     team_name: str | None = None
     is_user_linked: bool = False
+    role_name: str | None = None
+    user_id: int | None = None
 
 
 class CSVRowError(BaseModel):

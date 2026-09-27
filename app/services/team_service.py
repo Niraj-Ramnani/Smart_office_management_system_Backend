@@ -4,22 +4,45 @@ from sqlalchemy.orm import Session
 from app.models.team import Team
 from app.repositories.employee_repository import EmployeeRepository
 from app.repositories.team_repository import TeamRepository
-from app.schemas.team import TeamCreate, TeamResponse, TeamUpdate
+from app.schemas.team import TeamCreate, TeamMemberItem, TeamResponse, TeamUpdate
 
 
 class TeamService:
     @staticmethod
+    def _build_team_response(team: Team) -> TeamResponse:
+        res = TeamResponse.model_validate(team)
+        if team.manager:
+            res.manager_name = f"{team.manager.first_name} {team.manager.last_name}"
+            res.manager_email = team.manager.email
+            res.manager_designation = team.manager.designation
+            res.manager_employee_code = team.manager.employee_code
+            res.manager_seat_number = (
+                team.manager.seat.seat_number if team.manager.seat else None
+            )
+
+        employees = team.employees or []
+        res.member_count = len(employees)
+        res.members = [
+            TeamMemberItem(
+                id=e.id,
+                employee_code=e.employee_code,
+                first_name=e.first_name,
+                last_name=e.last_name,
+                email=e.email,
+                phone=e.phone,
+                designation=e.designation,
+                department=e.department,
+                employee_status=e.employee_status,
+                seat_number=e.seat.seat_number if e.seat else None,
+            )
+            for e in employees
+        ]
+        return res
+
+    @staticmethod
     def list_teams(db: Session) -> list[TeamResponse]:
         teams = TeamRepository.get_all(db)
-        result = []
-        for t in teams:
-            res = TeamResponse.model_validate(t)
-            if t.manager:
-                res.manager_name = f"{t.manager.first_name} {t.manager.last_name}"
-                res.manager_email = t.manager.email
-            res.member_count = len(t.employees) if t.employees else 0
-            result.append(res)
-        return result
+        return [TeamService._build_team_response(t) for t in teams]
 
     @staticmethod
     def get_team(db: Session, team_id: int) -> Team:
@@ -34,12 +57,7 @@ class TeamService:
     @staticmethod
     def get_team_response(db: Session, team_id: int) -> TeamResponse:
         team = TeamService.get_team(db, team_id)
-        res = TeamResponse.model_validate(team)
-        if team.manager:
-            res.manager_name = f"{team.manager.first_name} {team.manager.last_name}"
-            res.manager_email = team.manager.email
-        res.member_count = len(team.employees) if team.employees else 0
-        return res
+        return TeamService._build_team_response(team)
 
     @staticmethod
     def create_team(db: Session, data: TeamCreate) -> TeamResponse:
@@ -56,12 +74,7 @@ class TeamService:
             department=data.department.strip(),
             manager_id=data.manager_id,
         )
-
-        res = TeamResponse.model_validate(team)
-        res.manager_name = f"{manager.first_name} {manager.last_name}"
-        res.manager_email = manager.email
-        res.member_count = 0
-        return res
+        return TeamService._build_team_response(team)
 
     @staticmethod
     def update_team(db: Session, team_id: int, data: TeamUpdate) -> TeamResponse:
@@ -82,13 +95,7 @@ class TeamService:
             department=data.department.strip() if data.department is not None else None,
             manager_id=data.manager_id,
         )
-
-        res = TeamResponse.model_validate(updated)
-        if updated.manager:
-            res.manager_name = f"{updated.manager.first_name} {updated.manager.last_name}"
-            res.manager_email = updated.manager.email
-        res.member_count = len(updated.employees) if updated.employees else 0
-        return res
+        return TeamService._build_team_response(updated)
 
     @staticmethod
     def delete_team(db: Session, team_id: int) -> dict[str, str]:
@@ -100,3 +107,37 @@ class TeamService:
             )
         TeamRepository.delete(db, team)
         return {"message": f"Team '{team.name}' deleted successfully"}
+
+    @staticmethod
+    def add_members(db: Session, team_id: int, employee_ids: list[int]) -> TeamResponse:
+        team = TeamService.get_team(db, team_id)
+        for emp_id in employee_ids:
+            emp = EmployeeRepository.get_by_id(db, emp_id)
+            if not emp:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail=f"Employee with ID {emp_id} not found",
+                )
+            emp.team_id = team.id
+        db.commit()
+        db.refresh(team)
+        return TeamService._build_team_response(team)
+
+    @staticmethod
+    def remove_member(db: Session, team_id: int, employee_id: int) -> TeamResponse:
+        team = TeamService.get_team(db, team_id)
+        emp = EmployeeRepository.get_by_id(db, employee_id)
+        if not emp:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Employee with ID {employee_id} not found",
+            )
+        if emp.team_id != team.id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Employee '{emp.first_name} {emp.last_name}' is not a member of team '{team.name}'",
+            )
+        emp.team_id = None
+        db.commit()
+        db.refresh(team)
+        return TeamService._build_team_response(team)

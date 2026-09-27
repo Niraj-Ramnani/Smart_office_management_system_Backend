@@ -10,6 +10,8 @@ from app.routes.v1 import (
     building_router,
     employee_router,
     floor_router,
+    seat_request_router,
+    seat_router,
     team_router,
     user_router,
 )
@@ -45,6 +47,8 @@ app.include_router(floor_router, prefix="/api/v1")
 app.include_router(team_router, prefix="/api/v1")
 app.include_router(employee_router, prefix="/api/v1")
 app.include_router(user_router, prefix="/api/v1")
+app.include_router(seat_router, prefix="/api/v1")
+app.include_router(seat_request_router, prefix="/api/v1")
 
 
 @app.get("/")
