@@ -6,6 +6,7 @@ from app.schemas.seat_request import (
     SeatRequestExecute,
     SeatRequestResponse,
     SeatRequestReview,
+    SwapConsentAction,
 )
 from app.services.seat_request_service import SeatRequestService
 
@@ -54,6 +55,15 @@ class SeatRequestController:
         data: SeatRequestReview,
     ) -> SeatRequestResponse:
         return SeatRequestService.review_request(db, request_id, current_user, data)
+
+    @staticmethod
+    def respond_swap_consent(
+        db: Session,
+        request_id: int,
+        current_user: User,
+        data: SwapConsentAction,
+    ) -> SeatRequestResponse:
+        return SeatRequestService.respond_swap_consent(db, request_id, current_user, data)
 
     @staticmethod
     def execute_request(

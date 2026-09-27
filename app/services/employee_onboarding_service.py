@@ -7,13 +7,18 @@ from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.core.constants import (
+    ASSET_STATUS_AVAILABLE,
+    ASSET_TYPE_DESKTOP,
     EMPLOYEE_STATUS_ACTIVE,
     ROLE_ADMIN,
     ROLE_EMPLOYEE,
     ROLE_MANAGER,
 )
+from app.models.asset import Asset
+from app.models.asset_allocation import AssetAllocation
 from app.models.employee import Employee
 from app.models.user import User
+from app.repositories.asset_repository import AssetRepository
 from app.repositories.employee_repository import EmployeeRepository
 from app.repositories.team_repository import TeamRepository
 from app.repositories.user_repository import UserRepository
@@ -164,6 +169,8 @@ class EmployeeOnboardingService:
                     is_active=True,
                 )
                 db.add(target_user)
+
+            EmployeeOnboardingService._provision_onboarding_desktop(db, target_employee.id)
 
             db.commit()
             db.refresh(target_employee)
@@ -372,6 +379,7 @@ class EmployeeOnboardingService:
                     is_active=True,
                 )
                 db.add(usr)
+                EmployeeOnboardingService._provision_onboarding_desktop(db, emp.id)
 
             db.commit()
             return CSVImportSummaryResponse(
@@ -383,3 +391,43 @@ class EmployeeOnboardingService:
         except Exception:
             db.rollback()
             raise
+
+    @staticmethod
+    def _provision_onboarding_desktop(db: Session, employee_id: int):
+        active_desktop = (
+            db.query(AssetAllocation)
+            .join(Asset)
+            .filter(
+                AssetAllocation.employee_id == employee_id,
+                AssetAllocation.status == "ACTIVE",
+                Asset.asset_type == ASSET_TYPE_DESKTOP,
+            )
+            .first()
+        )
+        if active_desktop:
+            return
+
+        avail_desktop = (
+            db.query(Asset)
+            .filter(Asset.asset_type == ASSET_TYPE_DESKTOP, Asset.status == ASSET_STATUS_AVAILABLE)
+            .first()
+        )
+        if not avail_desktop:
+            count = db.query(Asset).filter(Asset.asset_type == ASSET_TYPE_DESKTOP).count() + 1
+            avail_desktop = Asset(
+                asset_code=f"DSK-{count:03d}",
+                asset_type=ASSET_TYPE_DESKTOP,
+                name=f"Corporate Desktop Tower (#{count:03d})",
+                serial_number=f"SN-DSK-{count:04d}-{employee_id}",
+                status=ASSET_STATUS_AVAILABLE,
+            )
+            db.add(avail_desktop)
+            db.flush()
+
+        AssetRepository.allocate_asset(
+            db=db,
+            asset=avail_desktop,
+            employee_id=employee_id,
+            notes="Standard onboarding desktop provision",
+        )
+

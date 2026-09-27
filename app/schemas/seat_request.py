@@ -8,6 +8,9 @@ class SeatRequestCreate(BaseModel):
     preferred_seat_id: int | None = None
     target_seat_id: int | None = None
     target_employee_id: int | None = None
+    asset_type: str | None = None
+    current_asset_id: int | None = None
+    employee_id: int | None = None
     reason: str | None = None
 
 
@@ -16,8 +19,14 @@ class SeatRequestReview(BaseModel):
     rejected_reason: str | None = None
 
 
+class SwapConsentAction(BaseModel):
+    action: str = Field(..., pattern="^(ACCEPT|REJECT)$")
+
+
 class SeatRequestExecute(BaseModel):
     seat_id: int | None = None
+    asset_id: int | None = None
+    replacement_asset_id: int | None = None
     notes: str | None = None
 
 

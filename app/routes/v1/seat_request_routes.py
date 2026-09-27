@@ -10,9 +10,10 @@ from app.schemas.seat_request import (
     SeatRequestExecute,
     SeatRequestResponse,
     SeatRequestReview,
+    SwapConsentAction,
 )
 
-router = APIRouter(prefix="/seat-requests", tags=["Seat Request & Approval Workflow"])
+router = APIRouter(prefix="/seat-requests", tags=["Seat & Asset Request Workflow"])
 
 
 @router.post("", response_model=SeatRequestResponse, status_code=status.HTTP_201_CREATED)
@@ -67,6 +68,16 @@ def review_request(
     current_user: User = Depends(get_current_user),
 ) -> SeatRequestResponse:
     return SeatRequestController.review_request(db, request_id, current_user, data)
+
+
+@router.post("/{request_id}/respond-swap", response_model=SeatRequestResponse)
+def respond_swap_consent(
+    request_id: int,
+    data: SwapConsentAction,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> SeatRequestResponse:
+    return SeatRequestController.respond_swap_consent(db, request_id, current_user, data)
 
 
 @router.post("/{request_id}/execute", response_model=SeatRequestResponse)

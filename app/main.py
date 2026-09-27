@@ -6,10 +6,12 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.core.auth import load_azure_openid_config
 from app.core.config import settings
 from app.routes.v1 import (
+    asset_router,
     auth_router,
     building_router,
     employee_router,
     floor_router,
+    notification_router,
     seat_request_router,
     seat_router,
     team_router,
@@ -49,6 +51,8 @@ app.include_router(employee_router, prefix="/api/v1")
 app.include_router(user_router, prefix="/api/v1")
 app.include_router(seat_router, prefix="/api/v1")
 app.include_router(seat_request_router, prefix="/api/v1")
+app.include_router(asset_router, prefix="/api/v1")
+app.include_router(notification_router, prefix="/api/v1")
 
 
 @app.get("/")
