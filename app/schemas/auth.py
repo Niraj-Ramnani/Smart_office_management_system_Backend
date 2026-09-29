@@ -1,6 +1,5 @@
 from pydantic import BaseModel, ConfigDict
 
-
 class UserMeResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

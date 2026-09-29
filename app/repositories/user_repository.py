@@ -4,7 +4,6 @@ from sqlalchemy.orm import Session, joinedload
 from app.models.role import Role
 from app.models.user import User
 
-
 class UserRepository:
     @staticmethod
     def get_all(db: Session) -> list[User]:

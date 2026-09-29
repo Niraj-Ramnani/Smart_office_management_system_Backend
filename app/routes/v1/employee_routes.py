@@ -8,6 +8,7 @@ from app.dependencies.auth import get_current_user, require_admin, require_role
 from app.models.user import User
 from app.schemas.employee import (
     CSVImportSummaryResponse,
+    CSVValidationResponse,
     EmployeeCreate,
     EmployeeResponse,
     EmployeeStatusUpdate,
@@ -15,7 +16,6 @@ from app.schemas.employee import (
 )
 
 router = APIRouter(prefix="/employees", tags=["Employees"])
-
 
 @router.get("", response_model=list[EmployeeResponse])
 def list_employees(
@@ -34,7 +34,6 @@ def list_employees(
         employee_status=employee_status,
     )
 
-
 @router.get("/{employee_id}", response_model=EmployeeResponse)
 def get_employee(
     employee_id: int,
@@ -43,7 +42,6 @@ def get_employee(
 ) -> EmployeeResponse:
     return EmployeeController.get_employee(db, employee_id, current_user)
 
-
 @router.post("", response_model=EmployeeResponse, status_code=status.HTTP_201_CREATED)
 def create_employee(
     data: EmployeeCreate,
@@ -51,7 +49,6 @@ def create_employee(
     _: User = Depends(require_admin),
 ) -> EmployeeResponse:
     return EmployeeController.create_employee(db, data)
-
 
 @router.put("/{employee_id}", response_model=EmployeeResponse)
 def update_employee(
@@ -62,7 +59,6 @@ def update_employee(
 ) -> EmployeeResponse:
     return EmployeeController.update_employee(db, employee_id, data)
 
-
 @router.patch("/{employee_id}/status", response_model=EmployeeResponse)
 def update_employee_status(
     employee_id: int,
@@ -72,7 +68,6 @@ def update_employee_status(
 ) -> EmployeeResponse:
     return EmployeeController.update_employee_status(db, employee_id, data)
 
-
 @router.delete("/{employee_id}", response_model=EmployeeResponse)
 def delete_employee(
     employee_id: int,
@@ -81,7 +76,6 @@ def delete_employee(
 ) -> EmployeeResponse:
     return EmployeeController.delete_employee(db, employee_id)
 
-
 @router.post("/csv-import", response_model=CSVImportSummaryResponse)
 async def import_employees_csv(
     request: Request,
@@ -89,3 +83,11 @@ async def import_employees_csv(
     _: User = Depends(require_admin),
 ) -> CSVImportSummaryResponse:
     return await EmployeeController.import_employees_csv(request, db)
+
+@router.post("/csv-validate", response_model=CSVValidationResponse)
+async def validate_employees_csv(
+    request: Request,
+    db: Session = Depends(get_db),
+    _: User = Depends(require_admin),
+) -> CSVValidationResponse:
+    return await EmployeeController.validate_employees_csv(request, db)

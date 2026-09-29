@@ -17,7 +17,6 @@ from app.schemas.user_management import (
 
 router = APIRouter(prefix="/users", tags=["Users & Role Management"])
 
-
 @router.get("", response_model=list[UserManagementResponse])
 def list_users(
     db: Session = Depends(get_db),
@@ -25,14 +24,12 @@ def list_users(
 ) -> list[UserManagementResponse]:
     return UserController.list_users(db)
 
-
 @router.get("/roles", response_model=list[RoleResponse])
 def list_roles(
     db: Session = Depends(get_db),
     _: User = Depends(require_admin),
 ) -> list[RoleResponse]:
     return UserController.list_roles(db)
-
 
 @router.post("/provision", response_model=UserManagementResponse, status_code=status.HTTP_201_CREATED)
 def provision_user(
@@ -42,7 +39,6 @@ def provision_user(
 ) -> UserManagementResponse:
     return UserController.provision_user(db, data)
 
-
 @router.post("/provision/csv", response_model=UserProvisionCSVResponse)
 async def provision_users_csv(
     request: Request,
@@ -50,7 +46,6 @@ async def provision_users_csv(
     _: User = Depends(require_admin),
 ) -> UserProvisionCSVResponse:
     return await UserController.provision_users_csv(request, db)
-
 
 @router.patch("/{user_id}/employee", response_model=UserManagementResponse)
 def assign_user_employee(
@@ -61,7 +56,6 @@ def assign_user_employee(
 ) -> UserManagementResponse:
     return UserController.assign_user_employee(db, user_id, data)
 
-
 @router.patch("/{user_id}/role", response_model=UserManagementResponse)
 def update_user_role(
     user_id: int,
@@ -71,7 +65,6 @@ def update_user_role(
 ) -> UserManagementResponse:
     return UserController.update_user_role(db, user_id, data)
 
-
 @router.patch("/{user_id}/status", response_model=UserManagementResponse)
 def update_user_status(
     user_id: int,
@@ -80,3 +73,11 @@ def update_user_status(
     _: User = Depends(require_admin),
 ) -> UserManagementResponse:
     return UserController.update_user_status(db, user_id, data)
+
+@router.delete("/{user_id}", response_model=dict[str, str])
+def delete_user(
+    user_id: int,
+    db: Session = Depends(get_db),
+    _: User = Depends(require_admin),
+) -> dict[str, str]:
+    return UserController.delete_user(db, user_id)

@@ -6,7 +6,6 @@ from app.models.employee import Employee
 from app.models.permission_request import PermissionRequest
 from app.models.team import Team
 
-
 class SeatRequestRepository:
     @staticmethod
     def get_all(

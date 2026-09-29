@@ -29,7 +29,6 @@ from app.schemas.seat import (
     SeatingOverviewResponse,
 )
 
-
 class SeatService:
     @staticmethod
     def _to_response(seat: Seat) -> SeatResponse:

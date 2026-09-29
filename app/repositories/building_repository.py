@@ -3,7 +3,6 @@ from sqlalchemy.orm import Session, joinedload
 
 from app.models.building import Building
 
-
 class BuildingRepository:
     @staticmethod
     def get_all(db: Session) -> list[Building]:

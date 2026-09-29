@@ -5,7 +5,6 @@ from app.models.building import Building
 from app.repositories.building_repository import BuildingRepository
 from app.schemas.building import BuildingCreate, BuildingResponse, BuildingUpdate
 
-
 class BuildingService:
     @staticmethod
     def list_buildings(db: Session) -> list[BuildingResponse]:

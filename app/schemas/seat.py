@@ -1,7 +1,6 @@
 from datetime import datetime
 from pydantic import BaseModel, ConfigDict, Field
 
-
 class SeatBase(BaseModel):
     seat_number: str = Field(..., max_length=50)
     seat_type: str = Field("Standard", max_length=30)
@@ -9,10 +8,8 @@ class SeatBase(BaseModel):
     x_position: float = Field(0.0, ge=0)
     y_position: float = Field(0.0, ge=0)
 
-
 class SeatCreate(SeatBase):
     floor_id: int
-
 
 class SeatBatchCreate(BaseModel):
     floor_id: int
@@ -21,7 +18,6 @@ class SeatBatchCreate(BaseModel):
     start_number: int | None = Field(None, ge=1)
     seat_type: str = Field("Standard", max_length=30)
 
-
 class SeatUpdate(BaseModel):
     seat_number: str | None = Field(None, max_length=50)
     seat_type: str | None = Field(None, max_length=30)
@@ -29,27 +25,22 @@ class SeatUpdate(BaseModel):
     x_position: float | None = Field(None, ge=0)
     y_position: float | None = Field(None, ge=0)
 
-
 class SeatAssignRequest(BaseModel):
     employee_id: int
     notes: str | None = None
-
 
 class SeatRelocateRequest(BaseModel):
     current_seat_id: int
     target_seat_id: int
     notes: str | None = None
 
-
 class SeatSwapRequest(BaseModel):
     seat_id: int
     target_employee_id: int
     notes: str | None = None
 
-
 class SeatReleaseRequest(BaseModel):
     notes: str | None = None
-
 
 class SeatResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -70,7 +61,6 @@ class SeatResponse(BaseModel):
     floor_name: str | None = None
     floor_number: int | None = None
 
-
 class FloorSummaryItem(BaseModel):
     floor_id: int
     floor_name: str
@@ -78,7 +68,6 @@ class FloorSummaryItem(BaseModel):
     total_seats: int
     occupied_seats: int
     vacant_seats: int
-
 
 class BuildingSeatingSummary(BaseModel):
     building_id: int
@@ -88,12 +77,10 @@ class BuildingSeatingSummary(BaseModel):
     vacant_seats: int
     floors: list[FloorSummaryItem]
 
-
 class RoleDistributionItem(BaseModel):
     role_name: str
     count: int
     percent: str
-
 
 class SeatingOverviewResponse(BaseModel):
     total_seats: int
@@ -102,7 +89,6 @@ class SeatingOverviewResponse(BaseModel):
     total_blocked: int
     buildings: list[BuildingSeatingSummary]
     role_distribution: list[RoleDistributionItem] = []
-
 
 class FloorSeatingMapResponse(BaseModel):
     floor_id: int
@@ -117,7 +103,6 @@ class FloorSeatingMapResponse(BaseModel):
     vacant_seats: int
     blocked_seats: int
     seats: list[SeatResponse]
-
 
 class SeatHistoryResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)

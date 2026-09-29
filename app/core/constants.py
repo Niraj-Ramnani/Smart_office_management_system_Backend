@@ -1,38 +1,30 @@
-# Authentication & Token Configuration
+
 DEFAULT_TOKEN_LEEWAY_SECONDS: int = 120
 
-# Role Constants
 ROLE_ADMIN: str = "Admin"
 ROLE_MANAGER: str = "Manager"
 ROLE_EMPLOYEE: str = "Employee"
 
-# Employee Status Constants
 EMPLOYEE_STATUS_ACTIVE: str = "ACTIVE"
 EMPLOYEE_STATUS_INACTIVE: str = "INACTIVE"
 
-# Employment Types
 EMPLOYMENT_TYPES: tuple[str, ...] = ("Full-Time", "Part-Time", "Contract", "Intern")
 
-# Floor Map Defaults
 DEFAULT_MAP_WIDTH: int = 1000
 DEFAULT_MAP_HEIGHT: int = 800
 
-# Seat Status Constants
 SEAT_STATUS_VACANT: str = "Vacant"
 SEAT_STATUS_OCCUPIED: str = "Occupied"
 SEAT_STATUS_BLOCKED: str = "Blocked"
 
-# Seat Types
 SEAT_TYPE_STANDARD: str = "Standard"
 SEAT_TYPE_CUBICLE: str = "Cubicle"
 
-# Seat History Actions
 SEAT_ACTION_ASSIGN: str = "ASSIGN"
 SEAT_ACTION_RELEASE: str = "RELEASE"
 SEAT_ACTION_RELOCATE: str = "RELOCATE"
 SEAT_ACTION_SWAP: str = "SWAP"
 
-# Asset Types
 ASSET_TYPE_LAPTOP: str = "Laptop"
 ASSET_TYPE_DESKTOP: str = "Desktop"
 ASSET_TYPE_MONITOR: str = "Monitor"
@@ -48,7 +40,6 @@ ASSET_TYPES: tuple[str, ...] = (
     ASSET_TYPE_CHARGER,
 )
 
-# Asset Lifecycle Statuses
 ASSET_STATUS_AVAILABLE: str = "Available"
 ASSET_STATUS_ASSIGNED: str = "Assigned"
 ASSET_STATUS_UNDER_MAINTENANCE: str = "Under Maintenance"
@@ -60,13 +51,11 @@ ASSET_STATUSES: tuple[str, ...] = (
     ASSET_STATUS_RETIRED,
 )
 
-# Asset Allocation Actions
 ASSET_ACTION_ASSIGN: str = "ASSIGN"
 ASSET_ACTION_RETURN: str = "RETURN"
 ASSET_ACTION_MAINTENANCE: str = "MAINTENANCE"
 ASSET_ACTION_REPLACE: str = "REPLACE"
 
-# Permission Request Types
 REQUEST_TYPE_NEW_SEAT: str = "NEW_SEAT"
 REQUEST_TYPE_RELOCATION: str = "RELOCATION"
 REQUEST_TYPE_SWAP: str = "SWAP"
@@ -74,7 +63,6 @@ REQUEST_TYPE_ASSET_NEW: str = "ASSET_NEW"
 REQUEST_TYPE_ASSET_MAINTENANCE: str = "ASSET_MAINTENANCE"
 REQUEST_TYPE_ASSET_REPLACEMENT: str = "ASSET_REPLACEMENT"
 
-# Permission Request Statuses
 REQUEST_STATUS_PENDING: str = "PENDING"
 REQUEST_STATUS_PENDING_CONSENT: str = "PENDING_CONSENT"
 REQUEST_STATUS_MANAGER_APPROVED: str = "MANAGER_APPROVED"
@@ -82,7 +70,6 @@ REQUEST_STATUS_REJECTED: str = "REJECTED"
 REQUEST_STATUS_COMPLETED: str = "COMPLETED"
 REQUEST_STATUS_CANCELLED: str = "CANCELLED"
 
-# Notification Types
 NOTIFICATION_TYPE_REQUEST: str = "REQUEST"
 NOTIFICATION_TYPE_APPROVAL: str = "APPROVAL"
 NOTIFICATION_TYPE_EXECUTION: str = "EXECUTION"

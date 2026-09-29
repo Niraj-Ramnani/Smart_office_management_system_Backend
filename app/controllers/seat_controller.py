@@ -13,8 +13,8 @@ from app.schemas.seat import (
     SeatUpdate,
     SeatingOverviewResponse,
 )
+from app.services.notification_service import ws_manager
 from app.services.seat_service import SeatService
-
 
 class SeatController:
     @staticmethod
@@ -39,19 +39,26 @@ class SeatController:
 
     @staticmethod
     def create_seat(db: Session, data: SeatCreate) -> SeatResponse:
-        return SeatService.create_seat(db, data)
+        res = SeatService.create_seat(db, data)
+        ws_manager.broadcast_entity_change("Seat", "created", ["Seat", "Floor", "Building"])
+        return res
 
     @staticmethod
     def batch_create_seats(db: Session, data: SeatBatchCreate) -> list[SeatResponse]:
-        return SeatService.batch_create_seats(db, data)
+        res = SeatService.batch_create_seats(db, data)
+        ws_manager.broadcast_entity_change("Seat", "batch_created", ["Seat", "Floor", "Building"])
+        return res
 
     @staticmethod
     def update_seat(db: Session, seat_id: int, data: SeatUpdate) -> SeatResponse:
-        return SeatService.update_seat(db, seat_id, data)
+        res = SeatService.update_seat(db, seat_id, data)
+        ws_manager.broadcast_entity_change("Seat", "updated", ["Seat", "Floor", "Building", "Employee"])
+        return res
 
     @staticmethod
     def delete_seat(db: Session, seat_id: int) -> dict[str, str]:
         SeatService.delete_seat(db, seat_id)
+        ws_manager.broadcast_entity_change("Seat", "deleted", ["Seat", "Floor", "Building"])
         return {"message": f"Seat {seat_id} successfully deleted"}
 
     @staticmethod
@@ -61,13 +68,15 @@ class SeatController:
         data: SeatAssignRequest,
         user_id: int,
     ) -> SeatResponse:
-        return SeatService.assign_seat(
+        res = SeatService.assign_seat(
             db=db,
             seat_id=seat_id,
             employee_id=data.employee_id,
             user_id=user_id,
             notes=data.notes,
         )
+        ws_manager.broadcast_entity_change("Seat", "assigned", ["Seat", "Employee", "SeatRequest", "Notification"])
+        return res
 
     @staticmethod
     def release_seat(
@@ -76,12 +85,14 @@ class SeatController:
         data: SeatReleaseRequest,
         user_id: int,
     ) -> SeatResponse:
-        return SeatService.release_seat(
+        res = SeatService.release_seat(
             db=db,
             seat_id=seat_id,
             user_id=user_id,
             notes=data.notes,
         )
+        ws_manager.broadcast_entity_change("Seat", "released", ["Seat", "Employee", "SeatRequest", "Notification"])
+        return res
 
     @staticmethod
     def relocate_seat(
@@ -89,13 +100,15 @@ class SeatController:
         data: SeatRelocateRequest,
         user_id: int,
     ) -> SeatResponse:
-        return SeatService.relocate_seat(
+        res = SeatService.relocate_seat(
             db=db,
             current_seat_id=data.current_seat_id,
             target_seat_id=data.target_seat_id,
             user_id=user_id,
             notes=data.notes,
         )
+        ws_manager.broadcast_entity_change("Seat", "relocated", ["Seat", "Employee", "SeatRequest", "Notification"])
+        return res
 
     @staticmethod
     def swap_seats(
@@ -103,13 +116,15 @@ class SeatController:
         data: SeatSwapRequest,
         user_id: int,
     ) -> list[SeatResponse]:
-        return SeatService.swap_seats(
+        res = SeatService.swap_seats(
             db=db,
             seat_id=data.seat_id,
             target_employee_id=data.target_employee_id,
             user_id=user_id,
             notes=data.notes,
         )
+        ws_manager.broadcast_entity_change("Seat", "swapped", ["Seat", "Employee", "SeatRequest", "Notification"])
+        return res
 
     @staticmethod
     def get_seat_history(db: Session, seat_id: int) -> list[SeatHistoryResponse]:

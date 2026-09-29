@@ -1,8 +1,8 @@
 from sqlalchemy.orm import Session
 
 from app.schemas.team import TeamCreate, TeamResponse, TeamUpdate
+from app.services.notification_service import ws_manager
 from app.services.team_service import TeamService
-
 
 class TeamController:
     @staticmethod
@@ -15,26 +15,36 @@ class TeamController:
 
     @staticmethod
     def create_team(db: Session, data: TeamCreate) -> TeamResponse:
-        return TeamService.create_team(db, data)
+        res = TeamService.create_team(db, data)
+        ws_manager.broadcast_entity_change("Team", "created", ["Team", "Employee"])
+        return res
 
     @staticmethod
     def update_team(
         db: Session, team_id: int, data: TeamUpdate
     ) -> TeamResponse:
-        return TeamService.update_team(db, team_id, data)
+        res = TeamService.update_team(db, team_id, data)
+        ws_manager.broadcast_entity_change("Team", "updated", ["Team", "Employee"])
+        return res
 
     @staticmethod
     def delete_team(db: Session, team_id: int) -> dict[str, str]:
-        return TeamService.delete_team(db, team_id)
+        res = TeamService.delete_team(db, team_id)
+        ws_manager.broadcast_entity_change("Team", "deleted", ["Team", "Employee"])
+        return res
 
     @staticmethod
     def add_members(
         db: Session, team_id: int, employee_ids: list[int]
     ) -> TeamResponse:
-        return TeamService.add_members(db, team_id, employee_ids)
+        res = TeamService.add_members(db, team_id, employee_ids)
+        ws_manager.broadcast_entity_change("Team", "members_updated", ["Team", "Employee"])
+        return res
 
     @staticmethod
     def remove_member(
         db: Session, team_id: int, employee_id: int
     ) -> TeamResponse:
-        return TeamService.remove_member(db, team_id, employee_id)
+        res = TeamService.remove_member(db, team_id, employee_id)
+        ws_manager.broadcast_entity_change("Team", "members_updated", ["Team", "Employee"])
+        return res

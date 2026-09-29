@@ -11,7 +11,7 @@ from app.schemas.asset import (
     AssetReturn,
 )
 from app.services.asset_service import AssetService
-
+from app.services.notification_service import ws_manager
 
 class AssetController:
     @staticmethod
@@ -41,7 +41,9 @@ class AssetController:
         data: AssetCreate,
         current_user: User,
     ) -> AssetResponse:
-        return AssetService.create_asset(db, data, current_user)
+        res = AssetService.create_asset(db, data, current_user)
+        ws_manager.broadcast_entity_change("Asset", "created", ["Asset"])
+        return res
 
     @staticmethod
     def allocate_asset(
@@ -50,7 +52,9 @@ class AssetController:
         data: AssetAllocate,
         current_user: User,
     ) -> AssetResponse:
-        return AssetService.allocate_asset(db, asset_id, data, current_user)
+        res = AssetService.allocate_asset(db, asset_id, data, current_user)
+        ws_manager.broadcast_entity_change("Asset", "allocated", ["Asset", "Employee", "SeatRequest", "Notification"])
+        return res
 
     @staticmethod
     def return_asset(
@@ -59,7 +63,9 @@ class AssetController:
         data: AssetReturn,
         current_user: User,
     ) -> AssetResponse:
-        return AssetService.return_asset(db, asset_id, data, current_user)
+        res = AssetService.return_asset(db, asset_id, data, current_user)
+        ws_manager.broadcast_entity_change("Asset", "returned", ["Asset", "Employee", "SeatRequest", "Notification"])
+        return res
 
     @staticmethod
     def set_maintenance(
@@ -68,7 +74,9 @@ class AssetController:
         data: AssetMaintenance,
         current_user: User,
     ) -> AssetResponse:
-        return AssetService.set_maintenance(db, asset_id, data, current_user)
+        res = AssetService.set_maintenance(db, asset_id, data, current_user)
+        ws_manager.broadcast_entity_change("Asset", "maintenance", ["Asset", "Employee", "SeatRequest", "Notification"])
+        return res
 
     @staticmethod
     def replace_asset(
@@ -77,7 +85,9 @@ class AssetController:
         data: AssetReplace,
         current_user: User,
     ) -> AssetResponse:
-        return AssetService.replace_asset(db, asset_id, data, current_user)
+        res = AssetService.replace_asset(db, asset_id, data, current_user)
+        ws_manager.broadcast_entity_change("Asset", "replaced", ["Asset", "Employee", "SeatRequest", "Notification"])
+        return res
 
     @staticmethod
     def get_asset_history(db: Session, asset_id: int) -> list[AssetAllocationResponse]:

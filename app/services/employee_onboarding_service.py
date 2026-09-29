@@ -10,6 +10,8 @@ from app.core.constants import (
     ASSET_STATUS_AVAILABLE,
     ASSET_TYPE_DESKTOP,
     EMPLOYEE_STATUS_ACTIVE,
+    EMPLOYEE_STATUS_INACTIVE,
+    EMPLOYMENT_TYPES,
     ROLE_ADMIN,
     ROLE_EMPLOYEE,
     ROLE_MANAGER,
@@ -25,13 +27,13 @@ from app.repositories.user_repository import UserRepository
 from app.schemas.employee import (
     CSVImportSummaryResponse,
     CSVRowError,
+    CSVValidationResponse,
     EmployeeCreate,
     EmployeeResponse,
 )
 
 EMAIL_REGEX = re.compile(r"^[\w\.-]+@[\w\.-]+\.\w+$")
 VALID_ROLES = {ROLE_ADMIN.lower(): ROLE_ADMIN, ROLE_MANAGER.lower(): ROLE_MANAGER, ROLE_EMPLOYEE.lower(): ROLE_EMPLOYEE}
-
 
 class EmployeeOnboardingService:
     @staticmethod
@@ -189,9 +191,14 @@ class EmployeeOnboardingService:
             raise
 
     @staticmethod
-    def import_employees_csv(
+    def _parse_and_validate_csv(
         db: Session, csv_content: str
-    ) -> CSVImportSummaryResponse:
+    ) -> tuple[int, list[dict[str, Any]], int, int, list[CSVRowError]]:
+        """
+        Parses and validates CSV content for employee bulk onboarding.
+        Returns:
+            (total_rows, parsed_rows, to_create_count, to_update_count, errors)
+        """
         f = io.StringIO(csv_content.strip())
         reader = csv.DictReader(f)
 
@@ -200,6 +207,7 @@ class EmployeeOnboardingService:
             "first_name",
             "last_name",
             "email",
+            "entra_oid",
             "designation",
             "department",
             "employment_type",
@@ -221,20 +229,33 @@ class EmployeeOnboardingService:
 
         field_map = {col.strip().lower(): col for col in reader.fieldnames if col}
 
-        existing_emp_codes = EmployeeRepository.get_all_codes_set(db)
-        existing_emp_emails = EmployeeRepository.get_all_emails_set(db)
-        existing_user_emails = UserRepository.get_all_emails_set(db)
-        existing_sso_ids = UserRepository.get_all_sso_ids_set(db)
+        existing_employees = EmployeeRepository.get_all(db)
+        emp_by_code: dict[str, Employee] = {
+            e.employee_code.lower(): e for e in existing_employees if e.employee_code
+        }
+        emp_by_email: dict[str, Employee] = {
+            e.email.lower(): e for e in existing_employees if e.email
+        }
+        existing_users = db.query(User).all()
+        user_by_email: dict[str, User] = {
+            u.email.lower(): u for u in existing_users if u.email
+        }
+        user_by_sso: dict[str, User] = {
+            u.sso_user_id.lower(): u for u in existing_users if u.sso_user_id
+        }
         teams_by_name = {t.name.lower(): t.id for t in TeamRepository.get_all(db)}
-        emp_by_code = EmployeeRepository.get_code_to_id_map(db)
-        emp_by_email = {e.email.lower(): e.id for e in EmployeeRepository.get_all(db)}
         roles_by_name = {r.name.lower(): r for r in UserRepository.get_roles(db)}
+        valid_emp_types = {t.lower(): t for t in EMPLOYMENT_TYPES}
+        valid_statuses = {
+            EMPLOYEE_STATUS_ACTIVE.lower(): EMPLOYEE_STATUS_ACTIVE,
+            EMPLOYEE_STATUS_INACTIVE.lower(): EMPLOYEE_STATUS_INACTIVE,
+        }
 
-        batch_codes: set[str] = set()
-        batch_emails: set[str] = set()
-        batch_sso_ids: set[str] = set()
+        batch_codes: dict[str, int] = {}
+        batch_emails: dict[str, int] = {}
+        batch_sso_ids: dict[str, int] = {}
         errors: list[CSVRowError] = []
-        rows_to_process: list[dict[str, Any]] = []
+        parsed_rows: list[dict[str, Any]] = []
 
         total_rows = 0
         for row_idx, row in enumerate(reader, start=2):
@@ -243,148 +264,286 @@ class EmployeeOnboardingService:
             first_name = (row.get(field_map.get("first_name", "")) or "").strip()
             last_name = (row.get(field_map.get("last_name", "")) or "").strip()
             email = (row.get(field_map.get("email", "")) or "").strip().lower()
+            sso_id = (
+                (row.get(field_map.get("entra_oid", "")) or "")
+                or (row.get(field_map.get("sso_user_id", "")) or "")
+            ).strip()
             designation = (row.get(field_map.get("designation", "")) or "").strip()
             department = (row.get(field_map.get("department", "")) or "").strip()
-            employment_type = (row.get(field_map.get("employment_type", "")) or "").strip()
+            employment_type_raw = (row.get(field_map.get("employment_type", "")) or "").strip()
             phone = (row.get(field_map.get("phone", "")) or "").strip() or None
-            status_val = (
-                (row.get(field_map.get("employee_status", "")) or "").strip()
-                or EMPLOYEE_STATUS_ACTIVE
-            )
-            role_val = (
+            status_val_raw = (row.get(field_map.get("employee_status", "")) or "").strip()
+            role_val_raw = (
                 (row.get(field_map.get("role", "")) or "")
                 or (row.get(field_map.get("role_name", "")) or "")
-            ).strip().lower() or ROLE_EMPLOYEE.lower()
-
+            ).strip()
             manager_ident = (
                 (row.get(field_map.get("manager_employee_code", "")) or "")
                 or (row.get(field_map.get("manager_code", "")) or "")
                 or (row.get(field_map.get("manager_email", "")) or "")
-            ).strip().lower()
-
-            team_name = (
+            ).strip()
+            team_name_raw = (
                 (row.get(field_map.get("team_name", "")) or "")
                 or (row.get(field_map.get("team", "")) or "")
-            ).strip().lower()
+            ).strip()
 
-            sso_id = (
-                (row.get(field_map.get("entra_oid", "")) or "")
-                or (row.get(field_map.get("sso_user_id", "")) or "")
-            ).strip() or None
+            emp_display = f"{first_name} {last_name}".strip()
+            if code:
+                emp_display = f"{emp_display} ({code})" if emp_display else code
+            elif not emp_display:
+                emp_display = f"Row {row_idx}"
 
             if not code:
-                errors.append(CSVRowError(row=row_idx, field="employee_code", message="Employee code is required"))
-            elif code.lower() in existing_emp_codes or code.lower() in batch_codes:
-                errors.append(CSVRowError(row=row_idx, field="employee_code", message=f"Duplicate employee code '{code}'"))
+                errors.append(CSVRowError(row=row_idx, employee=emp_display, field="employee_code", message="Employee code is required"))
+            elif code.lower() in batch_codes:
+                errors.append(CSVRowError(row=row_idx, employee=emp_display, field="employee_code", message=f"Duplicate employee code '{code}' in CSV (previously on row {batch_codes[code.lower()]})"))
             else:
-                batch_codes.add(code.lower())
+                batch_codes[code.lower()] = row_idx
 
             if not first_name:
-                errors.append(CSVRowError(row=row_idx, field="first_name", message="First name is required"))
+                errors.append(CSVRowError(row=row_idx, employee=emp_display, field="first_name", message="First name is required"))
             if not last_name:
-                errors.append(CSVRowError(row=row_idx, field="last_name", message="Last name is required"))
+                errors.append(CSVRowError(row=row_idx, employee=emp_display, field="last_name", message="Last name is required"))
 
             if not email:
-                errors.append(CSVRowError(row=row_idx, field="email", message="Email is required"))
+                errors.append(CSVRowError(row=row_idx, employee=emp_display, field="email", message="Email is required"))
             elif not EMAIL_REGEX.match(email):
-                errors.append(CSVRowError(row=row_idx, field="email", message=f"Invalid email format '{email}'"))
-            elif email in existing_emp_emails or email in batch_emails:
-                errors.append(CSVRowError(row=row_idx, field="email", message=f"Duplicate employee email '{email}'"))
-            elif email in existing_user_emails:
-                errors.append(CSVRowError(row=row_idx, field="email", message=f"User email '{email}' already registered in system"))
+                errors.append(CSVRowError(row=row_idx, employee=emp_display, field="email", message=f"Invalid email format '{email}'"))
+            elif email in batch_emails:
+                errors.append(CSVRowError(row=row_idx, employee=emp_display, field="email", message=f"Duplicate email '{email}' in CSV (previously on row {batch_emails[email]})"))
             else:
-                batch_emails.add(email)
+                batch_emails[email] = row_idx
 
-            if sso_id:
-                if sso_id.lower() in existing_sso_ids or sso_id.lower() in batch_sso_ids:
-                    errors.append(CSVRowError(row=row_idx, field="entra_oid", message=f"Microsoft Entra OID '{sso_id}' already registered"))
-                else:
-                    batch_sso_ids.add(sso_id.lower())
+            if not sso_id:
+                errors.append(CSVRowError(row=row_idx, employee=emp_display, field="entra_oid", message="Microsoft Entra Object ID (entra_oid) is required"))
+            elif sso_id.lower() in batch_sso_ids:
+                errors.append(CSVRowError(row=row_idx, employee=emp_display, field="entra_oid", message=f"Duplicate Microsoft Entra OID '{sso_id}' in CSV (previously on row {batch_sso_ids[sso_id.lower()]})"))
+            elif " " in sso_id or len(sso_id) < 8:
+                errors.append(CSVRowError(row=row_idx, employee=emp_display, field="entra_oid", message=f"Invalid Microsoft Entra OID format '{sso_id}'"))
+            else:
+                batch_sso_ids[sso_id.lower()] = row_idx
 
             if not designation:
-                errors.append(CSVRowError(row=row_idx, field="designation", message="Designation is required"))
+                errors.append(CSVRowError(row=row_idx, employee=emp_display, field="designation", message="Designation is required"))
             if not department:
-                errors.append(CSVRowError(row=row_idx, field="department", message="Department is required"))
-            if not employment_type:
-                errors.append(CSVRowError(row=row_idx, field="employment_type", message="Employment type is required"))
+                errors.append(CSVRowError(row=row_idx, employee=emp_display, field="department", message="Department is required"))
 
+            employment_type = ""
+            if not employment_type_raw:
+                errors.append(CSVRowError(row=row_idx, employee=emp_display, field="employment_type", message="Employment type is required"))
+            elif employment_type_raw.lower() not in valid_emp_types:
+                errors.append(CSVRowError(row=row_idx, employee=emp_display, field="employment_type", message=f"Invalid employment type '{employment_type_raw}'. Valid options: {', '.join(EMPLOYMENT_TYPES)}"))
+            else:
+                employment_type = valid_emp_types[employment_type_raw.lower()]
+
+            if not status_val_raw:
+                employee_status = EMPLOYEE_STATUS_ACTIVE
+            elif status_val_raw.lower() not in valid_statuses:
+                errors.append(CSVRowError(row=row_idx, employee=emp_display, field="employee_status", message=f"Invalid employee status '{status_val_raw}'. Valid options: ACTIVE, INACTIVE"))
+                employee_status = EMPLOYEE_STATUS_ACTIVE
+            else:
+                employee_status = valid_statuses[status_val_raw.lower()]
+
+            role_val = role_val_raw.lower() or ROLE_EMPLOYEE.lower()
             role_obj = roles_by_name.get(role_val)
             if not role_obj:
-                errors.append(CSVRowError(row=row_idx, field="role", message=f"Role '{role_val}' is invalid. Valid roles: {ROLE_ADMIN}, {ROLE_MANAGER}, {ROLE_EMPLOYEE}"))
-
-            manager_id = None
-            if manager_ident:
-                if manager_ident in emp_by_code:
-                    manager_id = emp_by_code[manager_ident]
-                elif manager_ident in emp_by_email:
-                    manager_id = emp_by_email[manager_ident]
-                else:
-                    errors.append(CSVRowError(row=row_idx, field="manager", message=f"Manager '{manager_ident}' not found"))
+                errors.append(CSVRowError(row=row_idx, employee=emp_display, field="role", message=f"Role '{role_val_raw}' is invalid. Valid roles: {ROLE_ADMIN}, {ROLE_MANAGER}, {ROLE_EMPLOYEE}"))
 
             team_id = None
-            if team_name:
-                if team_name in teams_by_name:
-                    team_id = teams_by_name[team_name]
+            if team_name_raw:
+                if team_name_raw.lower() in teams_by_name:
+                    team_id = teams_by_name[team_name_raw.lower()]
                 else:
-                    errors.append(CSVRowError(row=row_idx, field="team_name", message=f"Team '{team_name}' not found"))
+                    errors.append(CSVRowError(row=row_idx, employee=emp_display, field="team_name", message=f"Team '{team_name_raw}' not found"))
 
-            if role_obj:
-                rows_to_process.append({
-                    "employee_code": code,
-                    "first_name": first_name,
-                    "last_name": last_name,
-                    "email": email,
-                    "phone": phone,
-                    "designation": designation,
-                    "department": department,
-                    "employment_type": employment_type,
-                    "employee_status": status_val,
-                    "manager_id": manager_id,
-                    "team_id": team_id,
-                    "role_id": role_obj.id,
-                    "sso_user_id": sso_id,
-                })
+            existing_emp = None
+            if code and code.lower() in emp_by_code:
+                existing_emp = emp_by_code[code.lower()]
+                if email and existing_emp.email.lower() != email:
+                    if email in emp_by_email and emp_by_email[email].id != existing_emp.id:
+                        errors.append(CSVRowError(row=row_idx, employee=emp_display, field="employee_code", message=f"Employee code '{code}' and email '{email}' belong to different existing employees"))
+                    else:
+                        errors.append(CSVRowError(row=row_idx, employee=emp_display, field="email", message=f"Employee code '{code}' is already associated with email '{existing_emp.email}' in database"))
+            elif email and email in emp_by_email:
+                existing_emp = emp_by_email[email]
+                if code and existing_emp.employee_code.lower() != code.lower():
+                    errors.append(CSVRowError(row=row_idx, employee=emp_display, field="employee_code", message=f"Email '{email}' is already associated with employee code '{existing_emp.employee_code}' in database"))
+
+            if email and email in user_by_email:
+                usr = user_by_email[email]
+                if usr.employee_id and (not existing_emp or usr.employee_id != existing_emp.id):
+                    errors.append(CSVRowError(row=row_idx, employee=emp_display, field="email", message=f"User email '{email}' is already linked to another employee record"))
+
+            if sso_id and sso_id.lower() in user_by_sso:
+                usr_sso = user_by_sso[sso_id.lower()]
+                if usr_sso.employee_id and (not existing_emp or usr_sso.employee_id != existing_emp.id):
+                    errors.append(CSVRowError(row=row_idx, employee=emp_display, field="entra_oid", message=f"Microsoft Entra OID '{sso_id}' is already linked to another employee ({usr_sso.email})"))
+                elif usr_sso.email.lower() != email:
+                    errors.append(CSVRowError(row=row_idx, employee=emp_display, field="entra_oid", message=f"Microsoft Entra OID '{sso_id}' is already registered to user '{usr_sso.email}'"))
+
+            parsed_rows.append({
+                "row_idx": row_idx,
+                "emp_display": emp_display,
+                "code": code,
+                "first_name": first_name,
+                "last_name": last_name,
+                "email": email,
+                "sso_id": sso_id,
+                "phone": phone,
+                "designation": designation,
+                "department": department,
+                "employment_type": employment_type,
+                "employee_status": employee_status,
+                "manager_ident": manager_ident,
+                "team_id": team_id,
+                "role_obj": role_obj,
+                "is_update": existing_emp is not None,
+            })
+
+        for r in parsed_rows:
+            mgr_ident = r["manager_ident"]
+            if mgr_ident:
+                mgr_lower = mgr_ident.lower()
+                if mgr_lower in emp_by_code or mgr_lower in emp_by_email or mgr_lower in batch_codes:
+                    pass
+                else:
+                    errors.append(CSVRowError(
+                        row=r["row_idx"],
+                        employee=r["emp_display"],
+                        field="manager_employee_code",
+                        message=f"Manager '{mgr_ident}' not found in organization or current CSV batch",
+                    ))
+
+        to_create_count = sum(1 for r in parsed_rows if not r["is_update"])
+        to_update_count = sum(1 for r in parsed_rows if r["is_update"])
+
+        return total_rows, parsed_rows, to_create_count, to_update_count, errors
+
+    @staticmethod
+    def validate_employees_csv(
+        db: Session, csv_content: str
+    ) -> CSVValidationResponse:
+        total_rows, parsed_rows, to_create, to_update, errors = (
+            EmployeeOnboardingService._parse_and_validate_csv(db, csv_content)
+        )
+        failed_rows = len({e.row for e in errors})
+        valid_count = total_rows - failed_rows if total_rows >= failed_rows else 0
+
+        return CSVValidationResponse(
+            total_rows=total_rows,
+            valid_count=valid_count,
+            to_create_count=to_create if not errors else 0,
+            to_update_count=to_update if not errors else 0,
+            failed_count=failed_rows if errors else 0,
+            errors=errors,
+        )
+
+    @staticmethod
+    def import_employees_csv(
+        db: Session, csv_content: str
+    ) -> CSVImportSummaryResponse:
+        total_rows, parsed_rows, to_create, to_update, errors = (
+            EmployeeOnboardingService._parse_and_validate_csv(db, csv_content)
+        )
 
         if errors:
+            failed_rows = len({e.row for e in errors})
             return CSVImportSummaryResponse(
                 total_rows=total_rows,
                 imported_count=0,
-                failed_count=len(errors),
+                updated_count=0,
+                failed_count=failed_rows,
                 errors=errors,
             )
 
         try:
-            for row_data in rows_to_process:
-                emp = Employee(
-                    employee_code=row_data["employee_code"],
-                    first_name=row_data["first_name"],
-                    last_name=row_data["last_name"],
-                    email=row_data["email"],
-                    phone=row_data["phone"],
-                    designation=row_data["designation"],
-                    department=row_data["department"],
-                    employment_type=row_data["employment_type"],
-                    employee_status=row_data["employee_status"],
-                    manager_id=row_data["manager_id"],
-                    team_id=row_data["team_id"],
-                )
-                db.add(emp)
-                db.flush()
+            all_emps_map: dict[str, Employee] = {
+                e.employee_code.lower(): e for e in EmployeeRepository.get_all(db) if e.employee_code
+            }
+            emp_by_email_map: dict[str, Employee] = {
+                e.email.lower(): e for e in EmployeeRepository.get_all(db) if e.email
+            }
+            all_users_map: dict[str, User] = {
+                u.email.lower(): u for u in db.query(User).all() if u.email
+            }
 
-                usr = User(
-                    email=row_data["email"],
-                    sso_user_id=row_data["sso_user_id"],
-                    role_id=row_data["role_id"],
-                    employee_id=emp.id,
-                    is_active=True,
-                )
-                db.add(usr)
+            created_count = 0
+            updated_count = 0
+
+            for r in parsed_rows:
+                code_lower = r["code"].lower()
+                email_lower = r["email"].lower()
+                emp = all_emps_map.get(code_lower) or emp_by_email_map.get(email_lower)
+
+                if emp:
+                    emp.employee_code = r["code"]
+                    emp.first_name = r["first_name"]
+                    emp.last_name = r["last_name"]
+                    emp.email = r["email"]
+                    emp.phone = r["phone"]
+                    emp.designation = r["designation"]
+                    emp.department = r["department"]
+                    emp.employment_type = r["employment_type"]
+                    emp.employee_status = r["employee_status"]
+                    emp.team_id = r["team_id"]
+                    db.flush()
+                    updated_count += 1
+                else:
+                    emp = Employee(
+                        employee_code=r["code"],
+                        first_name=r["first_name"],
+                        last_name=r["last_name"],
+                        email=r["email"],
+                        phone=r["phone"],
+                        designation=r["designation"],
+                        department=r["department"],
+                        employment_type=r["employment_type"],
+                        employee_status=r["employee_status"],
+                        team_id=r["team_id"],
+                    )
+                    db.add(emp)
+                    db.flush()
+                    created_count += 1
+
+                all_emps_map[code_lower] = emp
+                emp_by_email_map[email_lower] = emp
+
+                user = all_users_map.get(email_lower)
+                is_active = (r["employee_status"] == EMPLOYEE_STATUS_ACTIVE)
+                if user:
+                    user.employee_id = emp.id
+                    user.sso_user_id = r["sso_id"]
+                    user.role_id = r["role_obj"].id
+                    user.is_active = is_active
+                else:
+                    user = User(
+                        email=r["email"],
+                        sso_user_id=r["sso_id"],
+                        role_id=r["role_obj"].id,
+                        employee_id=emp.id,
+                        is_active=is_active,
+                    )
+                    db.add(user)
+                    db.flush()
+                    all_users_map[email_lower] = user
+
                 EmployeeOnboardingService._provision_onboarding_desktop(db, emp.id)
+
+            for r in parsed_rows:
+                mgr_ident = r["manager_ident"]
+                if mgr_ident:
+                    mgr_lower = mgr_ident.lower()
+                    mgr = all_emps_map.get(mgr_lower) or emp_by_email_map.get(mgr_lower)
+                    if mgr:
+                        emp = all_emps_map.get(r["code"].lower())
+                        if emp:
+                            emp.manager_id = mgr.id
 
             db.commit()
             return CSVImportSummaryResponse(
                 total_rows=total_rows,
-                imported_count=len(rows_to_process),
+                imported_count=created_count,
+                updated_count=updated_count,
                 failed_count=0,
                 errors=[],
             )
@@ -430,4 +589,3 @@ class EmployeeOnboardingService:
             employee_id=employee_id,
             notes="Standard onboarding desktop provision",
         )
-

@@ -9,7 +9,6 @@ from app.core.constants import DEFAULT_TOKEN_LEEWAY_SECONDS
 
 logger = logging.getLogger("uvicorn.error")
 
-
 class EntraIDAuthScheme(SingleTenantAzureAuthorizationCodeBearer):
     def __init__(
         self,
@@ -75,7 +74,6 @@ class EntraIDAuthScheme(SingleTenantAzureAuthorizationCodeBearer):
             logger.warning("Entra ID token validation failed: %s", exc)
             raise
 
-
 azure_scheme = EntraIDAuthScheme(
     app_client_id=settings.AZURE_CLIENT_ID,
     tenant_id=settings.AZURE_TENANT_ID,
@@ -86,7 +84,6 @@ azure_scheme = EntraIDAuthScheme(
         settings.AZURE_API_SCOPE: "access_as_user",
     },
 )
-
 
 async def load_azure_openid_config() -> None:
     try:

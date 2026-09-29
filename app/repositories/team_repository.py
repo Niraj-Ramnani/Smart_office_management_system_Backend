@@ -2,7 +2,6 @@ from sqlalchemy.orm import Session, joinedload
 
 from app.models.team import Team
 
-
 class TeamRepository:
     @staticmethod
     def get_all(db: Session) -> list[Team]:

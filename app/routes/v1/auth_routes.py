@@ -6,7 +6,6 @@ from app.schemas.auth import UserMeResponse
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
-
 @router.get("/me", response_model=UserMeResponse)
 def get_my_profile(current_user: User = Depends(get_current_user)) -> UserMeResponse:
     return UserMeResponse(

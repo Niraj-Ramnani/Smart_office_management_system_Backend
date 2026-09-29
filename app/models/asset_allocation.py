@@ -10,7 +10,6 @@ if TYPE_CHECKING:
     from app.models.asset import Asset
     from app.models.employee import Employee
 
-
 class AssetAllocation(Base):
     __tablename__ = "asset_allocations"
 

@@ -19,7 +19,6 @@ from app.schemas.user_management import (
 
 EMAIL_REGEX = re.compile(r"^[\w\.-]+@[\w\.-]+\.\w+$")
 
-
 class UserService:
     @staticmethod
     def _to_response(user: User) -> UserManagementResponse:
@@ -124,6 +123,28 @@ class UserService:
 
         user = UserRepository.update_status(db, user, is_active)
         return UserService._to_response(user)
+
+    @staticmethod
+    def delete_user(db: Session, user_id: int) -> dict[str, str]:
+        user = UserRepository.get_by_id(db, user_id)
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"User with ID {user_id} not found",
+            )
+        if user.email == "neerajramnani800@gmail.com":
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Cannot delete the primary administrator user account",
+            )
+        from app.models.activity_log import ActivityLog
+        from app.models.notification import Notification
+
+        db.query(Notification).filter_by(user_id=user_id).delete()
+        db.query(ActivityLog).filter_by(user_id=user_id).delete()
+        db.delete(user)
+        db.commit()
+        return {"message": "User deleted successfully"}
 
     @staticmethod
     def provision_user(

@@ -3,7 +3,6 @@ from sqlalchemy.orm import Session
 
 from app.models.notification import Notification
 
-
 class NotificationRepository:
     @staticmethod
     def get_by_id(db: Session, notification_id: int) -> Notification | None:

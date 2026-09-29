@@ -3,7 +3,6 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-
 class Settings:
     PROJECT_NAME: str = "Smart Office Management System"
     DATABASE_URL: str = os.getenv(
@@ -21,7 +20,6 @@ class Settings:
         "http://127.0.0.1:5174",
     ]
 
-    # Microsoft Entra ID Settings
     AZURE_TENANT_ID: str = os.getenv(
         "AZURE_TENANT_ID",
         "4f104e29-1d92-473f-8ae7-f975f8a17d72",
@@ -38,6 +36,5 @@ class Settings:
         "AZURE_API_SCOPE",
         f"api://{AZURE_CLIENT_ID}/access_as_user",
     )
-
 
 settings = Settings()

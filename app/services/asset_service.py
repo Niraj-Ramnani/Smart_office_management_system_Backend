@@ -28,7 +28,6 @@ from app.schemas.asset import (
 )
 from app.services.notification_service import NotificationService
 
-
 class AssetService:
     @staticmethod
     def _to_response(asset: Asset) -> AssetResponse:

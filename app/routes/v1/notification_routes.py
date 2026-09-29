@@ -9,14 +9,12 @@ from app.services.notification_service import NotificationService, ws_manager
 
 router = APIRouter(tags=["Notifications"])
 
-
 @router.get("/notifications", response_model=NotificationSummary)
 def get_my_notifications(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> NotificationSummary:
     return NotificationService.get_summary(db, current_user.id)
-
 
 @router.put("/notifications/{notification_id}/read", response_model=NotificationResponse)
 @router.post("/notifications/{notification_id}/read", response_model=NotificationResponse)
@@ -38,7 +36,6 @@ def mark_notification_read(
         )
     return notif
 
-
 @router.put("/notifications/read-all")
 @router.post("/notifications/read-all")
 def mark_all_notifications_read(
@@ -47,7 +44,6 @@ def mark_all_notifications_read(
 ):
     count = NotificationService.mark_all_as_read(db, current_user.id)
     return {"message": "All notifications marked as read and cleared", "count": count}
-
 
 @router.delete("/notifications/{notification_id}")
 def delete_single_notification(
@@ -58,7 +54,6 @@ def delete_single_notification(
     NotificationService.delete_notification(db, notification_id, current_user.id)
     return {"message": "Notification removed"}
 
-
 @router.delete("/notifications")
 def clear_all_notifications(
     db: Session = Depends(get_db),
@@ -66,7 +61,6 @@ def clear_all_notifications(
 ):
     count = NotificationService.delete_all(db, current_user.id)
     return {"message": "All notifications cleared", "count": count}
-
 
 @router.websocket("/ws/notifications")
 async def websocket_notifications(

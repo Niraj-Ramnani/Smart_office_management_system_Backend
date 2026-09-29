@@ -2,7 +2,7 @@ from sqlalchemy.orm import Session
 
 from app.schemas.floor import FloorCreate, FloorResponse, FloorUpdate
 from app.services.floor_service import FloorService
-
+from app.services.notification_service import ws_manager
 
 class FloorController:
     @staticmethod
@@ -17,14 +17,20 @@ class FloorController:
 
     @staticmethod
     def create_floor(db: Session, data: FloorCreate) -> FloorResponse:
-        return FloorService.create_floor(db, data)
+        res = FloorService.create_floor(db, data)
+        ws_manager.broadcast_entity_change("Floor", "created", ["Floor", "Building", "Seat"])
+        return res
 
     @staticmethod
     def update_floor(
         db: Session, floor_id: int, data: FloorUpdate
     ) -> FloorResponse:
-        return FloorService.update_floor(db, floor_id, data)
+        res = FloorService.update_floor(db, floor_id, data)
+        ws_manager.broadcast_entity_change("Floor", "updated", ["Floor", "Building", "Seat"])
+        return res
 
     @staticmethod
     def delete_floor(db: Session, floor_id: int) -> dict[str, str]:
-        return FloorService.delete_floor(db, floor_id)
+        res = FloorService.delete_floor(db, floor_id)
+        ws_manager.broadcast_entity_change("Floor", "deleted", ["Floor", "Building", "Seat"])
+        return res

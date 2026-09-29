@@ -43,7 +43,6 @@ from app.services.asset_service import AssetService
 from app.services.notification_service import NotificationService
 from app.services.seat_service import SeatService
 
-
 class SeatRequestService:
     @staticmethod
     def _to_response(req: PermissionRequest) -> SeatRequestResponse:

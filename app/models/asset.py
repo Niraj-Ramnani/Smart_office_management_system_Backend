@@ -9,7 +9,6 @@ from app.db.database import Base
 if TYPE_CHECKING:
     from app.models.asset_allocation import AssetAllocation
 
-
 class Asset(Base):
     __tablename__ = "assets"
 

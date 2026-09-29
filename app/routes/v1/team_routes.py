@@ -15,7 +15,6 @@ from app.schemas.team import (
 
 router = APIRouter(prefix="/teams", tags=["Teams"])
 
-
 def _check_team_management_permission(team_id: int, user: User, db: Session) -> None:
     if user.role and user.role.name == ROLE_ADMIN:
         return
@@ -28,14 +27,12 @@ def _check_team_management_permission(team_id: int, user: User, db: Session) -> 
         detail="Insufficient permissions to manage this team",
     )
 
-
 @router.get("", response_model=list[TeamResponse])
 def list_teams(
     db: Session = Depends(get_db),
     _: User = Depends(get_current_user),
 ) -> list[TeamResponse]:
     return TeamController.list_teams(db)
-
 
 @router.get("/{team_id}", response_model=TeamResponse)
 def get_team(
@@ -45,7 +42,6 @@ def get_team(
 ) -> TeamResponse:
     return TeamController.get_team(db, team_id)
 
-
 @router.post("", response_model=TeamResponse, status_code=status.HTTP_201_CREATED)
 def create_team(
     data: TeamCreate,
@@ -53,7 +49,6 @@ def create_team(
     _: User = Depends(require_admin),
 ) -> TeamResponse:
     return TeamController.create_team(db, data)
-
 
 @router.put("/{team_id}", response_model=TeamResponse)
 def update_team(
@@ -65,7 +60,6 @@ def update_team(
     _check_team_management_permission(team_id, current_user, db)
     return TeamController.update_team(db, team_id, data)
 
-
 @router.delete("/{team_id}")
 def delete_team(
     team_id: int,
@@ -73,7 +67,6 @@ def delete_team(
     _: User = Depends(require_admin),
 ) -> dict[str, str]:
     return TeamController.delete_team(db, team_id)
-
 
 @router.post("/{team_id}/members", response_model=TeamResponse)
 def add_team_members(
@@ -84,7 +77,6 @@ def add_team_members(
 ) -> TeamResponse:
     _check_team_management_permission(team_id, current_user, db)
     return TeamController.add_members(db, team_id, data.employee_ids)
-
 
 @router.delete("/{team_id}/members/{employee_id}", response_model=TeamResponse)
 def remove_team_member(

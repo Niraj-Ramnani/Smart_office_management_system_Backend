@@ -14,6 +14,7 @@ from app.repositories.user_repository import UserRepository
 from app.schemas.employee import (
     CSVImportSummaryResponse,
     CSVRowError,
+    CSVValidationResponse,
     EmployeeCreate,
     EmployeeResponse,
     EmployeeUpdate,
@@ -21,7 +22,6 @@ from app.schemas.employee import (
 from app.services.employee_onboarding_service import EmployeeOnboardingService
 
 EMAIL_REGEX = re.compile(r"^[\w\.-]+@[\w\.-]+\.\w+$")
-
 
 class EmployeeService:
     @staticmethod
@@ -193,3 +193,8 @@ class EmployeeService:
     ) -> CSVImportSummaryResponse:
         return EmployeeOnboardingService.import_employees_csv(db, csv_content)
 
+    @staticmethod
+    def validate_employees_csv(
+        db: Session, csv_content: str
+    ) -> CSVValidationResponse:
+        return EmployeeOnboardingService.validate_employees_csv(db, csv_content)

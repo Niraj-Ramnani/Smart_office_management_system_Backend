@@ -13,7 +13,6 @@ from app.core.constants import (
 from app.models.asset import Asset
 from app.models.asset_allocation import AssetAllocation
 
-
 class AssetRepository:
     @staticmethod
     def get_by_id(db: Session, asset_id: int) -> Asset | None:

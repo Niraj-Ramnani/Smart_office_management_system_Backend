@@ -8,8 +8,8 @@ from app.schemas.seat_request import (
     SeatRequestReview,
     SwapConsentAction,
 )
+from app.services.notification_service import ws_manager
 from app.services.seat_request_service import SeatRequestService
-
 
 class SeatRequestController:
     @staticmethod
@@ -18,7 +18,9 @@ class SeatRequestController:
         current_user: User,
         data: SeatRequestCreate,
     ) -> SeatRequestResponse:
-        return SeatRequestService.create_request(db, current_user, data)
+        res = SeatRequestService.create_request(db, current_user, data)
+        ws_manager.broadcast_entity_change("SeatRequest", "created", ["SeatRequest", "Notification"])
+        return res
 
     @staticmethod
     def get_my_requests(
@@ -54,7 +56,9 @@ class SeatRequestController:
         current_user: User,
         data: SeatRequestReview,
     ) -> SeatRequestResponse:
-        return SeatRequestService.review_request(db, request_id, current_user, data)
+        res = SeatRequestService.review_request(db, request_id, current_user, data)
+        ws_manager.broadcast_entity_change("SeatRequest", "reviewed", ["SeatRequest", "Notification"])
+        return res
 
     @staticmethod
     def respond_swap_consent(
@@ -63,7 +67,9 @@ class SeatRequestController:
         current_user: User,
         data: SwapConsentAction,
     ) -> SeatRequestResponse:
-        return SeatRequestService.respond_swap_consent(db, request_id, current_user, data)
+        res = SeatRequestService.respond_swap_consent(db, request_id, current_user, data)
+        ws_manager.broadcast_entity_change("SeatRequest", "consented", ["SeatRequest", "Notification"])
+        return res
 
     @staticmethod
     def execute_request(
@@ -72,4 +78,6 @@ class SeatRequestController:
         current_user: User,
         data: SeatRequestExecute,
     ) -> SeatRequestResponse:
-        return SeatRequestService.execute_request(db, request_id, current_user, data)
+        res = SeatRequestService.execute_request(db, request_id, current_user, data)
+        ws_manager.broadcast_entity_change("SeatRequest", "executed", ["SeatRequest", "Seat", "Employee", "Asset", "Notification"])
+        return res

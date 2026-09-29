@@ -6,7 +6,6 @@ from app.repositories.building_repository import BuildingRepository
 from app.repositories.floor_repository import FloorRepository
 from app.schemas.floor import FloorCreate, FloorResponse, FloorUpdate
 
-
 class FloorService:
     @staticmethod
     def list_floors(

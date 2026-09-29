@@ -5,7 +5,6 @@ from sqlalchemy.orm import Session, joinedload
 
 from app.models.employee import Employee
 
-
 class EmployeeRepository:
     @staticmethod
     def get_all(

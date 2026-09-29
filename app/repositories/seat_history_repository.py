@@ -2,7 +2,6 @@ from sqlalchemy.orm import Session, joinedload
 
 from app.models.seat_history import SeatHistory
 
-
 class SeatHistoryRepository:
     @staticmethod
     def get_by_seat_id(db: Session, seat_id: int) -> list[SeatHistory]:

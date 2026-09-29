@@ -6,7 +6,6 @@ from app.repositories.employee_repository import EmployeeRepository
 from app.repositories.team_repository import TeamRepository
 from app.schemas.team import TeamCreate, TeamMemberItem, TeamResponse, TeamUpdate
 
-
 class TeamService:
     @staticmethod
     def _build_team_response(team: Team) -> TeamResponse:

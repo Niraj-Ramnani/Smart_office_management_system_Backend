@@ -2,7 +2,6 @@ from sqlalchemy.orm import Session, joinedload
 
 from app.models.floor import Floor
 
-
 class FloorRepository:
     @staticmethod
     def get_all(db: Session, building_id: int | None = None) -> list[Floor]:

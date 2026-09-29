@@ -1,7 +1,6 @@
 from datetime import date, datetime
 from pydantic import BaseModel, ConfigDict, Field
 
-
 class AssetCreate(BaseModel):
     asset_code: str = Field(..., max_length=50)
     asset_type: str = Field(..., max_length=50)
@@ -9,30 +8,24 @@ class AssetCreate(BaseModel):
     serial_number: str = Field(..., max_length=100)
     purchase_date: date | None = None
 
-
 class AssetUpdate(BaseModel):
     name: str | None = None
     status: str | None = None
     purchase_date: date | None = None
 
-
 class AssetAllocate(BaseModel):
     employee_id: int
     notes: str | None = None
 
-
 class AssetReturn(BaseModel):
     notes: str | None = None
-
 
 class AssetMaintenance(BaseModel):
     notes: str | None = None
 
-
 class AssetReplace(BaseModel):
     replacement_asset_id: int
     notes: str | None = None
-
 
 class AssetResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -49,7 +42,6 @@ class AssetResponse(BaseModel):
     current_employee_id: int | None = None
     current_employee_name: str | None = None
     current_employee_code: str | None = None
-
 
 class AssetAllocationResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)

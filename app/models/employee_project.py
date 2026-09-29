@@ -9,7 +9,6 @@ if TYPE_CHECKING:
     from app.models.employee import Employee
     from app.models.project import Project
 
-
 class EmployeeProject(Base):
     __tablename__ = "employee_projects"
 

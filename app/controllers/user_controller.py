@@ -10,8 +10,8 @@ from app.schemas.user_management import (
     UserRoleUpdateRequest,
     UserStatusUpdateRequest,
 )
+from app.services.notification_service import ws_manager
 from app.services.user_service import UserService
-
 
 class UserController:
     @staticmethod
@@ -26,25 +26,39 @@ class UserController:
     def assign_user_employee(
         db: Session, user_id: int, data: UserEmployeeAssignRequest
     ) -> UserManagementResponse:
-        return UserService.assign_user_employee(db, user_id, data.employee_id)
+        res = UserService.assign_user_employee(db, user_id, data.employee_id)
+        ws_manager.broadcast_entity_change("User", "assigned_employee", ["User", "Employee"])
+        return res
 
     @staticmethod
     def update_user_role(
         db: Session, user_id: int, data: UserRoleUpdateRequest
     ) -> UserManagementResponse:
-        return UserService.update_user_role(db, user_id, data.role_name)
+        res = UserService.update_user_role(db, user_id, data.role_name)
+        ws_manager.broadcast_entity_change("User", "updated_role", ["User", "Employee"])
+        return res
 
     @staticmethod
     def update_user_status(
         db: Session, user_id: int, data: UserStatusUpdateRequest
     ) -> UserManagementResponse:
-        return UserService.update_user_status(db, user_id, data.is_active)
+        res = UserService.update_user_status(db, user_id, data.is_active)
+        ws_manager.broadcast_entity_change("User", "updated_status", ["User"])
+        return res
+
+    @staticmethod
+    def delete_user(db: Session, user_id: int) -> dict[str, str]:
+        res = UserService.delete_user(db, user_id)
+        ws_manager.broadcast_entity_change("User", "deleted", ["User"])
+        return res
 
     @staticmethod
     def provision_user(
         db: Session, data: UserProvisionRequest
     ) -> UserManagementResponse:
-        return UserService.provision_user(db, data)
+        res = UserService.provision_user(db, data)
+        ws_manager.broadcast_entity_change("User", "provisioned", ["User"])
+        return res
 
     @staticmethod
     async def provision_users_csv(
@@ -67,4 +81,6 @@ class UserController:
                 detail="CSV content is empty",
             )
 
-        return UserService.provision_users_csv(db, content_str)
+        res = UserService.provision_users_csv(db, content_str)
+        ws_manager.broadcast_entity_change("User", "provisioned_csv", ["User"])
+        return res

@@ -15,7 +15,6 @@ from app.schemas.seat_request import (
 
 router = APIRouter(prefix="/seat-requests", tags=["Seat & Asset Request Workflow"])
 
-
 @router.post("", response_model=SeatRequestResponse, status_code=status.HTTP_201_CREATED)
 def create_request(
     data: SeatRequestCreate,
@@ -24,14 +23,12 @@ def create_request(
 ) -> SeatRequestResponse:
     return SeatRequestController.create_request(db, current_user, data)
 
-
 @router.get("/my", response_model=list[SeatRequestResponse])
 def get_my_requests(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> list[SeatRequestResponse]:
     return SeatRequestController.get_my_requests(db, current_user)
-
 
 @router.get("/team", response_model=list[SeatRequestResponse])
 def get_team_requests(
@@ -40,7 +37,6 @@ def get_team_requests(
     current_user: User = Depends(get_current_user),
 ) -> list[SeatRequestResponse]:
     return SeatRequestController.get_manager_requests(db, current_user, status)
-
 
 @router.get("", response_model=list[SeatRequestResponse])
 def get_all_requests(
@@ -51,14 +47,12 @@ def get_all_requests(
 ) -> list[SeatRequestResponse]:
     return SeatRequestController.get_all_requests(db, status, request_type)
 
-
 @router.get("/approved", response_model=list[SeatRequestResponse])
 def get_approved_for_admin(
     db: Session = Depends(get_db),
     _: User = Depends(require_admin),
 ) -> list[SeatRequestResponse]:
     return SeatRequestController.get_approved_for_admin(db)
-
 
 @router.post("/{request_id}/review", response_model=SeatRequestResponse)
 def review_request(
@@ -69,7 +63,6 @@ def review_request(
 ) -> SeatRequestResponse:
     return SeatRequestController.review_request(db, request_id, current_user, data)
 
-
 @router.post("/{request_id}/respond-swap", response_model=SeatRequestResponse)
 def respond_swap_consent(
     request_id: int,
@@ -78,7 +71,6 @@ def respond_swap_consent(
     current_user: User = Depends(get_current_user),
 ) -> SeatRequestResponse:
     return SeatRequestController.respond_swap_consent(db, request_id, current_user, data)
-
 
 @router.post("/{request_id}/execute", response_model=SeatRequestResponse)
 def execute_request(

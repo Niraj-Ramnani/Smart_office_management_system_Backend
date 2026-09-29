@@ -16,7 +16,6 @@ from app.models.user import User
 
 logger = logging.getLogger("uvicorn.error")
 
-
 def get_current_user(
     azure_user: AzureUser = Depends(azure_scheme),
     db: Session = Depends(get_db),
@@ -129,7 +128,6 @@ def get_current_user(
     )
     return user
 
-
 class RoleChecker:
     def __init__(self, *allowed_roles: str) -> None:
         self.allowed_roles = set(allowed_roles)
@@ -146,10 +144,8 @@ class RoleChecker:
             )
         return current_user
 
-
 def require_role(*roles: str) -> Callable[..., Any]:
     return RoleChecker(*roles)
-
 
 require_admin = require_role(ROLE_ADMIN)
 require_manager = require_role(ROLE_MANAGER)

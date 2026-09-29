@@ -16,7 +16,6 @@ from app.models.floor import Floor
 from app.models.seat import Seat
 from app.models.seat_history import SeatHistory
 
-
 class SeatRepository:
     @staticmethod
     def get_all(

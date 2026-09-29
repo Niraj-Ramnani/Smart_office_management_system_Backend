@@ -10,7 +10,6 @@ if TYPE_CHECKING:
     from app.models.building import Building
     from app.models.seat import Seat
 
-
 class Floor(Base):
     __tablename__ = "floors"
     __table_args__ = (

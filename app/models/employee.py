@@ -15,7 +15,6 @@ if TYPE_CHECKING:
     from app.models.seat import Seat
     from app.models.seat_history import SeatHistory
 
-
 class Employee(Base):
     __tablename__ = "employees"
 

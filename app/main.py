@@ -18,12 +18,13 @@ from app.routes.v1 import (
     user_router,
 )
 
-
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    import asyncio
+    from app.services.notification_service import ws_manager
+    ws_manager.set_loop(asyncio.get_running_loop())
     await load_azure_openid_config()
     yield
-
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -54,11 +55,9 @@ app.include_router(seat_request_router, prefix="/api/v1")
 app.include_router(asset_router, prefix="/api/v1")
 app.include_router(notification_router, prefix="/api/v1")
 
-
 @app.get("/")
 def root():
     return {"message": "Smart Office Management System API"}
-
 
 @app.get("/api/v1/health")
 def health_check():

@@ -10,7 +10,6 @@ if TYPE_CHECKING:
     from app.models.employee import Employee
     from app.models.seat import Seat
 
-
 class GuestSeatAllocation(Base):
     __tablename__ = "guest_seat_allocations"
 

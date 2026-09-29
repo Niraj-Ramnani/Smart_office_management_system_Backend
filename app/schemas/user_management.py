@@ -1,13 +1,11 @@
 from datetime import datetime
 from pydantic import BaseModel, ConfigDict
 
-
 class RoleResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
     name: str
-
 
 class UserManagementResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -24,18 +22,14 @@ class UserManagementResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
 
-
 class UserEmployeeAssignRequest(BaseModel):
     employee_id: int | None = None
-
 
 class UserRoleUpdateRequest(BaseModel):
     role_name: str
 
-
 class UserStatusUpdateRequest(BaseModel):
     is_active: bool
-
 
 class UserProvisionRequest(BaseModel):
     employee_id: int
@@ -43,12 +37,10 @@ class UserProvisionRequest(BaseModel):
     role_name: str = "Employee"
     email: str | None = None
 
-
 class CSVUserRowError(BaseModel):
     row: int
     field: str
     message: str
-
 
 class UserProvisionCSVResponse(BaseModel):
     total_rows: int
