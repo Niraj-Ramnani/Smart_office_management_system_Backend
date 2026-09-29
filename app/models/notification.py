@@ -9,7 +9,6 @@ from app.db.database import Base
 if TYPE_CHECKING:
     from app.models.user import User
 
-
 class Notification(Base):
     __tablename__ = "notifications"
 

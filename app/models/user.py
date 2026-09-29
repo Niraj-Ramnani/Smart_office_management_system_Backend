@@ -10,7 +10,6 @@ if TYPE_CHECKING:
     from app.models.activity_log import ActivityLog
     from app.models.notification import Notification
 
-
 class User(Base):
     __tablename__ = "users"
 

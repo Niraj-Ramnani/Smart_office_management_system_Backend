@@ -10,7 +10,6 @@ if TYPE_CHECKING:
     from app.models.employee import Employee
     from app.models.seat import Seat
 
-
 class SeatHistory(Base):
     __tablename__ = "seat_history"
 

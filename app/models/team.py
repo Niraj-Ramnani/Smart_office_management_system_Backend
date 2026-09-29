@@ -9,7 +9,6 @@ from app.db.database import Base
 if TYPE_CHECKING:
     from app.models.employee import Employee
 
-
 class Team(Base):
     __tablename__ = "teams"
 

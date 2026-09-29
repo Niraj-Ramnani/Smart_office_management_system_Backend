@@ -9,7 +9,6 @@ from app.db.database import Base
 if TYPE_CHECKING:
     from app.models.floor import Floor
 
-
 class Building(Base):
     __tablename__ = "buildings"
 

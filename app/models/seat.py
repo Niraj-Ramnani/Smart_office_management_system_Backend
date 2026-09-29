@@ -14,7 +14,6 @@ if TYPE_CHECKING:
     from app.models.hot_desk_booking import HotDeskBooking
     from app.models.seat_history import SeatHistory
 
-
 class Seat(Base):
     __tablename__ = "seats"
     __table_args__ = (
